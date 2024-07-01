@@ -1,0 +1,75 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              Int       @id @default(autoincrement())
+  email           String    @unique
+  uuid            String    @unique
+  firstName       String?
+  lastName        String?
+  password        String?
+  userName        String    @unique
+  createdAt       DateTime  @default(now())
+  lastLogin   DateTime?
+  profile     Profile?
+  preferences Preferences[]
+  matchesSent Match[]   @relation("MatchesSent")
+  matchesReceived Match[] @relation("MatchesReceived")
+  messagesSent Message[] @relation("MessagesSent")
+  messagesReceived Message[] @relation("MessagesReceived")
+}
+
+model Profile {
+  id       Int     @id @default(autoincrement())
+  userId   Int     @unique
+  name     String?
+  age      Int?
+  gender   String?
+  bio      String?
+  location String?
+  photoUrl String?
+  user     User    @relation(fields: [userId], references: [id])
+}
+
+model Preferences {
+  id               Int     @id @default(autoincrement())
+  userId           Int
+  preferredGender  String?
+  preferredAgeRange String?
+  preferredLocation String?
+  user             User    @relation(fields: [userId], references: [id])
+}
+
+model Match {
+  id         Int      @id @default(autoincrement())
+  userId1    Int
+  userId2    Int
+  matchedAt  DateTime @default(now())
+  user1      User     @relation("MatchesSent", fields: [userId1], references: [id])
+  user2      User     @relation("MatchesReceived", fields: [userId2], references: [id])
+  messages   Message[]
+}
+
+model Message {
+  id        Int      @id @default(autoincrement())
+  matchId   Int
+  senderId  Int
+  receiverId Int
+  content   String
+  sentAt    DateTime @default(now())
+  match     Match    @relation(fields: [matchId], references: [id])
+  sender    User     @relation("MessagesSent", fields: [senderId], references: [id])
+  receiver  User     @relation("MessagesReceived", fields: [receiverId], references: [id])
+}

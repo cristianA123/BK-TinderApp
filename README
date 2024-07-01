@@ -1,0 +1,21 @@
+# TinderApp
+
+## Usage
+
+```python
+#1.
+git clone ...
+
+#2.
+npm install or  yarn install
+
+#3.
+cp .env.example .env
+
+#4.
+docker compose  up
+
+#5.
+npm run dev
+
+```
