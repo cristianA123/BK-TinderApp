@@ -1,0 +1,74 @@
+# Template Backend
+
+El objetivo del proyecto es tener un arquetipo estandarizado que sirva de plantilla para que cualquier colaborador de UTP pueda usarlo y empezar a trabajar su proyecto backend, también sirve de referencia para las personas que quieran ingresar al mundo de backend y entender las capas que se usan.
+
+## Explicación de las capas
+A continuación se menciona una breve explicación de cada capa
+
+### repostory ( prisma )
+> [Prisma](https://www.prisma.io/?via=start&gad_source=1) funciona como capa de repository para la conexión y consultas con la base de datos
+
+### src
+#### controller
+> Capa donde encontrarás información relacionada a los endpoints por entidad
+
+#### docs
+> Capa donde encontrarás la estrucutura de la documentación de cada endpoint hecha para swagger, el archivo está en .json
+
+#### DTO
+> Capa donde encontrarás las interfaces que trabajarán como input/outuput para las comunicaciones del sistema
+
+#### handler
+> Capa donde encontrarás los métodos que trabajarán como intermediario( procesar solicitudes y respuestas), en este caso lo usamos para poder interpretar los error de la aplicación y base de datos. 
+
+#### manager
+> Capa donde encontrarás la lógica de negocio de cada entidad
+
+#### middleware
+> Capa donde encontrarás métodos para el mejor control de la aplicación, como loggers, seguridad
+
+#### routes
+> Capa donde encontrarás el acceso a los endpoints de forma global, pudiendo manejar versiones, incluso usar graphql
+
+#### service
+> Capa donde encontrarás métodos de comunicación a terceros(endpoints externos, firebase, s3)
+
+#### shared
+> agrupa el código común y reusable para evitar duplicación y promover la consistencia en toda la aplicación
+
+
+
+### test
+> La carpeta test contiene exclusivamente los test de la aplicación separados en 
+> - __functionals__: Contiene tests funcionales a nivel de endpoints
+> - __mocks__: Contiene información de prueba para los tests
+> - __prisma__: Contiene la configuración de prisma para crear una referencia de base de datos exclusiva para las pruebas.
+> - __units__: Contiene tests unitarios para cada metodo de la aplicación
+
+## Usage
+
+```python
+#1. Importar el proyecto
+git clone ...
+
+#2. Instalar dependencias
+npm install or  yarn install
+
+#3. Crear .env y modificar los valores
+cp .env.example .env
+
+#4. Ejecutar la demo
+npm run dev
+
+```
+
+## Contribuciones
+Todo pull request es bienvenido. Para cambios importantes, abra primero un foro
+para discutir lo que le gustaría cambiar.
+
+
+Asegúrese de actualizar las pruebas según corresponda.
+
+## License
+
+[MIT](https://choosealicense.com/licenses/mit/)
