@@ -16,6 +16,9 @@ cp .env.example .env
 docker compose  up
 
 #5.
+npm run migrations
+
+#6.
 npm run dev
 
 ```
