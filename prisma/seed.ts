@@ -10,14 +10,16 @@ async function main() {
             uuid: uuidv4(),
             firstName:"Javier",
             lastName:"Lecca",
-            password: "utp@jleccac"
+            password: "utp@jleccac",
+            userName: "jleccac"
         },
         {
             email: "cchipana@utp.edu.pe",
             uuid: uuidv4(),
             firstName:"Cristian",
             lastName:"Chipana",
-            password: "utp@cchipana"
+            password: "utp@cchipana",
+            userName: "cchipana"
         },
     ]
 
