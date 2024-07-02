@@ -80,13 +80,14 @@ class AuthManager {
     }
 
     public async createUser(req: Request, res: Response, next: NextFunction): Promise<void> {
-        const { uuid, email, firstName, lastName } = req.body;
+        const { uuid, email, firstName, lastName, userName } = req.body;
         try {
             const response: ResponseDTO = { status: "ok", message: textResponses.createdResponse, data: {} }
     
             if (uuid && email && firstName && lastName && typeof(email) === 'string') {
                 const userData: UserDataDTO = {
                     email,
+                    userName,
                     firstName,
                     lastName,
                     uuid: uuidv4(),
