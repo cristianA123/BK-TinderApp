@@ -5,5 +5,6 @@ interface UserDataDTO {
     uuid: string;
     password?: string;
     userName: string; // Add the 'userName' property
+    lastLogin?: Date;
 }
 export default UserDataDTO;

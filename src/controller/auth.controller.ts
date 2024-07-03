@@ -16,7 +16,7 @@ const authController = (prisma: PrismaClient) => {
     router.post('/login', authManager.login.bind(authManager));
     router.get('/me', securityHandler.validateToken.bind(securityHandler), authManager.me.bind(authManager));
     router.post('/register', authManager.createUser.bind(authManager));
-    router.get('/refresh', securityHandler.validateToken.bind(securityHandler), authManager.me.bind(authManager));
+    router.get('/refresh', securityHandler.validateToken.bind(securityHandler), authManager.refresh.bind(authManager));
 
     return router;
 };

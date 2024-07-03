@@ -61,13 +61,43 @@ class AuthManager {
 
             const user = await prismaHandler.executeQuery(async () => {
                 return await this.prisma.user.findUnique({
-                    select: {email: true, firstName: true, lastName: true},
+                    // select: {email: true, firstName: true, lastName: true},
                     where: {email: email, uuid: uuid}
                 })
             });
 
             if(user){
                 response.data.user = user
+                const token = this.security.createToken(user.uuid)
+                response.data.token = token
+            }else{
+                response.status = "fail"
+                response.message = textResponses.incorrectCredentials
+            }
+            res.status(200).send(response);
+        }catch(error){
+            console.log("error Authmanager.getProfile =", error);
+            next(error instanceof AppError ? error : new AppError((error as Error).message, 500, enumUtil.functionalError));
+        }
+    }
+
+    public async refresh(req: Request, res: Response, next: NextFunction): Promise<void> {
+        const {email} = req.params;
+        const {uuid} = req.body;
+        try{
+            const response:ResponseDTO = { status:"ok", message:textResponses.success, data: {} }
+
+            const user = await prismaHandler.executeQuery(async () => {
+                return await this.prisma.user.findUnique({
+                    // select: {email: true, firstName: true, lastName: true},
+                    where: {email: email, uuid: uuid}
+                })
+            });
+
+            if(user){
+                response.data.user = user
+                const token = this.security.createToken(user.uuid)
+                response.data.token = token
             }else{
                 response.status = "fail"
                 response.message = textResponses.incorrectCredentials
@@ -80,18 +110,31 @@ class AuthManager {
     }
 
     public async createUser(req: Request, res: Response, next: NextFunction): Promise<void> {
-        const { uuid, email, firstName, lastName, userName } = req.body;
+        const { email, firstName, lastName, userName, password } = req.body;
         try {
             const response: ResponseDTO = { status: "ok", message: textResponses.createdResponse, data: {} }
     
-            if (uuid && email && firstName && lastName && typeof(email) === 'string') {
+            if ( email && firstName && lastName && typeof(email) === 'string') {
                 const userData: UserDataDTO = {
                     email,
                     userName,
                     firstName,
                     lastName,
                     uuid: uuidv4(),
-                    password: "123456"
+                    password: password
+                }
+
+                const [userExists, userNameExists] = await Promise.all([
+                    this.checkIfExists('email', email),
+                    this.checkIfExists('userName', userName)
+                ]);
+        
+                if (userExists) {
+                    throw new AppError("El email ya existe", 400, enumUtil.badParametersInput);
+                }
+        
+                if (userNameExists) {
+                    throw new AppError("El nombre de usuario ya existe", 400, enumUtil.badParametersInput);
                 }
     
                 const user = await prismaHandler.executeQuery(async () => {
@@ -116,6 +159,13 @@ class AuthManager {
         }
     }
 
+    private async checkIfExists(field: string, value: string)  {
+        return await prismaHandler.executeQuery(async () => {
+            return await this.prisma.user.findFirst({
+                where: { [field]: value }
+            });
+        });
+    }
 }
 
 export default AuthManager;
