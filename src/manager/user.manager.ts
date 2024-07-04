@@ -59,7 +59,6 @@ class UserManager {
 
             const user = await prismaHandler.executeQuery(async () => {
                 return await this.prisma.user.findUnique({
-                    select: {email: true, firstName: true, lastName: true},
                     where: {email: email, uuid: uuid}
                 })
             });
@@ -99,49 +98,47 @@ class UserManager {
         }
     }
 
-    public async updateUser(req: Request, res: Response, next: NextFunction): Promise<void> {
-        const {uuid, email, firstName, lastName} = req.body;
-        try{
-            const response:ResponseDTO = { status:"ok", message:textResponses.updatedResponse, data: {} }
+    // public async updateUser(req: Request, res: Response, next: NextFunction): Promise<void> {
+    //     const {uuid, email, firstName, lastName} = req.body;
+    //     try{
+    //         const response:ResponseDTO = { status:"ok", message:textResponses.updatedResponse, data: {} }
 
-            if (!uuid || !email || !firstName || !lastName) {
-                throw new AppError(textResponses.badParameters, 400, enumUtil.badParametersInput);
-            }
+    //         if (!uuid || !email || !firstName || !lastName) {
+    //             throw new AppError(textResponses.badParameters, 400, enumUtil.badParametersInput);
+    //         }
 
-            const userData: Partial<UserDataDTO> = { firstName, lastName }
+    //         const userData: Partial<UserDataDTO> = { firstName, lastName }
             
-            const user = await prismaHandler.executeQuery(async () => {
-                return await this.prisma.user.update({
-                    where: {email, uuid},
-                    data: userData,
-                })
-            });
+    //         const user = await prismaHandler.executeQuery(async () => {
+    //             return await this.prisma.user.update({
+    //                 where: {email, uuid},
+    //                 data: userData,
+    //             })
+    //         });
             
-            if(user){
-                userData.email = email
-                response.data.user = userData
-            }else{
-                response.status = "fail"
-                response.message = textResponses.incorrectCredentials
-            }
-            res.status(200).send(response);
-        }catch(error){
-            console.log("error usermanager.updateUser =", error);
-            next(error instanceof AppError ? error : new AppError((error as Error).message, 500, enumUtil.functionalError));
-        }
-    }
+    //         if(user){
+    //             userData.email = email
+    //             response.data.user = userData
+    //         }else{
+    //             response.status = "fail"
+    //             response.message = textResponses.incorrectCredentials
+    //         }
+    //         res.status(200).send(response);
+    //     }catch(error){
+    //         console.log("error usermanager.updateUser =", error);
+    //         next(error instanceof AppError ? error : new AppError((error as Error).message, 500, enumUtil.functionalError));
+    //     }
+    // }
 
     public async createUser(req: Request, res: Response, next: NextFunction): Promise<void> {
-        const { uuid, email, firstName, lastName, userName } = req.body;
+        const { uuid, email, userName } = req.body;
         try {
             const response: ResponseDTO = { status: "ok", message: textResponses.createdResponse, data: {} }
     
-            if (uuid && email && firstName && lastName && typeof email === 'string') {
+            if (uuid && email && typeof email === 'string') {
                 const userData: UserDataDTO = {
                     userName,
                     email,
-                    firstName,
-                    lastName,
                     uuid: uuidv4(),
                     password: this.createRandomPass(10)
                 }
@@ -151,6 +148,19 @@ class UserManager {
                 });
 
                 if (user) {
+                    const profileData = {
+                        firstName: "",
+                        lastName: "",
+                        age: null,
+                        gender: "",
+                        bio: "",
+                        location: "",
+                        photoUrl: "",
+                        userId: user.id
+                    };
+                    await prismaHandler.executeQuery(async () => {
+                        return this.prisma.profile.create({ data: profileData });
+                    });
                     delete userData.password
                     response.data.user = userData
                 } else {

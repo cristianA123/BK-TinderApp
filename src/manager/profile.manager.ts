@@ -1,162 +1,186 @@
 import { NextFunction, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { v4 as uuidv4 } from 'uuid';
-import UserDataDTO from '../DTO/userData.dto';
 import ResponseDTO from '../DTO/response.dto';
 import { textResponses } from '../shared/util/constants.util';
-import SecurityMiddleware from '../middleware/security.middleware';
 import AppError from '../shared/errors/app.error';
-import { InternalServerError } from '../shared/util/error.util';
 import { enumUtil } from '../shared/util/enum.util';
 import PrismaHandler from '../handler/prisma.handler';
+import ProfileDataDTO from '../DTO/profileData.dto';
 
 
 const prismaHandler = new PrismaHandler();
 
 class ProfileManager {
     private prisma: PrismaClient;
-    private security: SecurityMiddleware;
 
     constructor(prisma:PrismaClient) {
         this.prisma = prisma;
-        this.security = new SecurityMiddleware();
     }
 
-    public async profile(req: Request, res: Response, next: NextFunction): Promise<void> {
-        const { email, password} = req.body
-        try{
-            const response:ResponseDTO = { status:"ok", message: textResponses.success, data: {} }
+    public async profile(req: Request, res: Response, next: NextFunction): Promise<any> {
 
-            if(!email || !password){
-                throw new InternalServerError(textResponses.badParameters, enumUtil.badParametersInput)
+        try {
+            const { uuid } = req.body;
+            if (!uuid) {
+                throw new AppError(textResponses.badParameters, 400, enumUtil.badParametersInput);
             }
+
+            const response: ResponseDTO = { status: "ok", message: textResponses.success, data: {} };
+    
             const user = await prismaHandler.executeQuery(async () => {
                 return await this.prisma.user.findUnique({
-                    select: {uuid: true}, where: {email: email, password: password}
-                })
+                    where: { uuid },
+                });
             });
 
-            if(user){
-                const token = this.security.createToken(user.uuid)
-                response.data.token = token
-                response.data.uuid = user.uuid
-            }else{
-                response.status = "fail"
-                response.message = textResponses.incorrectCredentials
+            console.log(user?.id)
+    
+            if (!user) {
+                response.status = "fail";
+                response.message = textResponses.incorrectCredentials;
+                return res.status(200).json(response);
             }
-            
-            res.status(200).json(response);
 
-        }catch(error){
-            console.log("error Profilemanager.login =", error);
+            const profile = await prismaHandler.executeQuery(async () => {
+                return await this.prisma.profile.findUnique({
+                    where: { userId: user.id },
+                });
+            });
+
+            console.log(profile)
+            if (profile) {
+                response.data.profile = profile;
+            } else {
+                response.status = "fail";
+                response.message = "No se encontró el perfil del usuario.";
+            }
+
+            return res.status(200).json(response);
+    
+        } catch (error) {
+            console.log("error Profilemanager.profile =", error);
             next(error instanceof AppError ? error : new AppError((error as Error).message, 500, enumUtil.functionalError));
         }
     }
 
     public async createProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
-        const { email, userName, password } = req.body;
+        const { 
+            firstName,
+            lastName,
+            age,
+            gender,
+            bio,
+            location,
+            photoUrl,
+            userId
+        } = req.body;
+    
         try {
-            const response: ResponseDTO = { status: "ok", message: textResponses.createdResponse, data: {} }
+            const response: ResponseDTO = { status: "ok", message: textResponses.createdResponse, data: {} };
     
-            if ( email && password && userName && typeof(email) === 'string') {
-                const userData: UserDataDTO = {
-                    email,
-                    userName,
-                    uuid: uuidv4(),
-                    password: password
-                }
-
-                const [userExists, userNameExists] = await Promise.all([
-                    this.checkIfExists('email', email),
-                    this.checkIfExists('userName', userName)
-                ]);
-        
-                if (userExists) {
-                    throw new AppError("El email ya existe", 400, enumUtil.badParametersInput);
-                }
-        
-                if (userNameExists) {
-                    throw new AppError("El nombre de usuario ya existe", 400, enumUtil.badParametersInput);
-                }
-    
-                const user = await prismaHandler.executeQuery(async () => {
-                    return await this.prisma.user.create({ data: userData })
+            if (userId) {
+                const profileData: ProfileDataDTO = {
+                    firstName,
+                    lastName,
+                    age,
+                    gender,
+                    bio,
+                    location,
+                    photoUrl,
+                    userId
+                };
+                
+                const profile = await prismaHandler.executeQuery(async () => {
+                    return this.prisma.profile.create({ data: profileData });
                 });
-
-                if (user) {
-                    delete userData.password
-                    response.data.user = userData
-                } else {
-                    response.status = "fail"
-                    response.message = textResponses.incorrectCredentials
-                }
+    
+                response.data.profile = profile;
                 res.status(200).send(response);
             } else {
                 throw new AppError(textResponses.badParameters, 400, enumUtil.badParametersInput);
             }
     
         } catch (error) {
-            console.log("error Profilemanager.createUser =", error);
+            console.log("error Profilemanager.createProfile =", error);
             next(error instanceof AppError ? error : new AppError((error as Error).message, 500, enumUtil.functionalError));
         }
     }
 
-    public async updateProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
-        const { email, userName, password } = req.body;
+    public async updateProfile(req: Request, res: Response, next: NextFunction): Promise<any> {
+        const { 
+            firstName,
+            lastName,
+            age,
+            gender,
+            bio,
+            location,
+            photoUrl,
+            id
+         } = req.body;
+
         try {
-            const response: ResponseDTO = { status: "ok", message: textResponses.createdResponse, data: {} }
-    
-            if ( email && password && userName && typeof(email) === 'string') {
-                const userData: UserDataDTO = {
-                    email,
-                    userName,
-                    uuid: uuidv4(),
-                    password: password
-                }
 
-                const [userExists, userNameExists] = await Promise.all([
-                    this.checkIfExists('email', email),
-                    this.checkIfExists('userName', userName)
-                ]);
-        
-                if (userExists) {
-                    throw new AppError("El email ya existe", 400, enumUtil.badParametersInput);
-                }
-        
-                if (userNameExists) {
-                    throw new AppError("El nombre de usuario ya existe", 400, enumUtil.badParametersInput);
-                }
-    
-                const user = await prismaHandler.executeQuery(async () => {
-                    return await this.prisma.user.create({ data: userData })
-                });
-
-                if (user) {
-                    delete userData.password
-                    response.data.user = userData
-                } else {
-                    response.status = "fail"
-                    response.message = textResponses.incorrectCredentials
-                }
-                res.status(200).send(response);
-            } else {
+            const { uuid } = req.body;
+            if (!uuid) {
                 throw new AppError(textResponses.badParameters, 400, enumUtil.badParametersInput);
             }
     
-        } catch (error) {
-            console.log("error Profilemanager.createUser =", error);
-            next(error instanceof AppError ? error : new AppError((error as Error).message, 500, enumUtil.functionalError));
-        }
-    }
-
-
-    private async checkIfExists(field: string, value: string)  {
-        return await prismaHandler.executeQuery(async () => {
-            return await this.prisma.user.findFirst({
-                where: { [field]: value }
+            const response: ResponseDTO = { status: "ok", message: textResponses.success, data: {} };
+    
+            const user = await prismaHandler.executeQuery(async () => {
+                return await this.prisma.user.findUnique({
+                    where: { uuid },
+                });
             });
-        });
+
+            if (!user) {
+                response.status = "fail";
+                response.message = textResponses.incorrectCredentials;
+                return res.status(200).json(response);
+            }
+
+            const profileData = {
+                firstName,
+                lastName,
+                age,
+                gender,
+                bio,
+                location,
+                photoUrl,
+            };
+           
+            const profile = await prismaHandler.executeQuery(async () => {
+                return await this.prisma.profile.update({
+                    where: {
+                       id
+                    },
+                    data: profileData,
+                })
+            });
+
+            if (profile) {
+              
+                response.data.profile = profileData
+            } else {
+                response.status = "fail"
+                response.message = textResponses.incorrectCredentials
+            }
+            res.status(200).send(response);
+    
+        } catch (error) {
+            console.log("error Profilemanager.createUser =", error);
+            next(error instanceof AppError ? error : new AppError((error as Error).message, 500, enumUtil.functionalError));
+        }
     }
+
+
+    // private async checkIfExists(field: string, value: string)  {
+    //     return await prismaHandler.executeQuery(async () => {
+    //         return await this.prisma.user.findFirst({
+    //             where: { [field]: value }
+    //         });
+    //     });
+    // }
 }
 
 export default ProfileManager;

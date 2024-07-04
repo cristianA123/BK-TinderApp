@@ -15,7 +15,7 @@ const userController = (prisma: PrismaClient) => {
 
     router.post('/login', userManager.login.bind(userManager));
     router.get('/:email', securityHandler.validateToken.bind(securityHandler), userManager.getProfile.bind(userManager));
-    router.put('/', securityHandler.validateToken.bind(securityHandler), userManager.updateUser.bind(userManager));
+    // router.put('/', securityHandler.validateToken.bind(securityHandler), userManager.updateUser.bind(userManager));
     router.post('/', securityHandler.validateToken.bind(securityHandler), userManager.createUser.bind(userManager));
     router.delete('/:email', securityHandler.validateToken.bind(securityHandler), userManager.deleteUser.bind(userManager));
     return router;

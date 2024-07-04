@@ -140,6 +140,19 @@ class AuthManager {
                 });
 
                 if (user) {
+                    const profileData = {
+                        firstName: "",
+                        lastName: "",
+                        age: null,
+                        gender: "",
+                        bio: "",
+                        location: "",
+                        photoUrl: "",
+                        userId: user.id
+                    };
+                    await prismaHandler.executeQuery(async () => {
+                        return this.prisma.profile.create({ data: profileData });
+                    });
                     delete userData.password
                     response.data.user = userData
                 } else {

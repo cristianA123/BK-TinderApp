@@ -17,7 +17,7 @@ model User {
   id              Int       @id @default(autoincrement())
   email           String    @unique
   uuid            String    @unique
-  password        String
+  password        String?
   userName        String    @unique
   createdAt       DateTime  @default(now())
   lastLogin   DateTime?
@@ -32,7 +32,8 @@ model User {
 model Profile {
   id       Int     @id @default(autoincrement())
   userId   Int     @unique
-  name     String?
+  firstName String?
+  lastName String?
   age      Int?
   gender   String?
   bio      String?

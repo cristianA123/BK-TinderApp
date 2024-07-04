@@ -1,10 +1,12 @@
 interface ProfileDataDTO {
-    email: string;
-    firstName: string;
-    lastName: string;
-    uuid: string;
-    password?: string;
-    userName: string;
-    lastLogin?: Date;
+    id?: number;
+    firstName?: string;
+    lastName?: string;
+    age?: number;
+    gender?: string;
+    bio?: string;
+    location?: string;
+    photoUrl?: string;
+    userId: number
 }
 export default ProfileDataDTO;
