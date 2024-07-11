@@ -107,6 +107,7 @@ class ProfileManager {
     }
 
     public async updateProfile(req: Request, res: Response, next: NextFunction): Promise<any> {
+
         const { 
             firstName,
             lastName,
@@ -159,8 +160,7 @@ class ProfileManager {
             });
 
             if (profile) {
-              
-                response.data.profile = profileData
+                response.data.profile = profile
             } else {
                 response.status = "fail"
                 response.message = textResponses.incorrectCredentials
@@ -173,14 +173,6 @@ class ProfileManager {
         }
     }
 
-
-    // private async checkIfExists(field: string, value: string)  {
-    //     return await prismaHandler.executeQuery(async () => {
-    //         return await this.prisma.user.findFirst({
-    //             where: { [field]: value }
-    //         });
-    //     });
-    // }
 }
 
 export default ProfileManager;

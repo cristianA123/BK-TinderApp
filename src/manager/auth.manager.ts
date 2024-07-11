@@ -17,93 +17,93 @@ class AuthManager {
     private prisma: PrismaClient;
     private security: SecurityMiddleware;
 
-    constructor(prisma:PrismaClient) {
+    constructor(prisma: PrismaClient) {
         this.prisma = prisma;
         this.security = new SecurityMiddleware();
     }
 
     public async login(req: Request, res: Response, next: NextFunction): Promise<void> {
-        const { email, password} = req.body
-        try{
-            const response:ResponseDTO = { status:"ok", message: textResponses.success, data: {} }
+        const { email, password } = req.body
+        try {
+            const response: ResponseDTO = { status: "ok", message: textResponses.success, data: {} }
 
-            if(!email || !password){
+            if (!email || !password) {
                 throw new InternalServerError(textResponses.badParameters, enumUtil.badParametersInput)
             }
             const user = await prismaHandler.executeQuery(async () => {
                 return await this.prisma.user.findUnique({
-                    select: {uuid: true}, where: {email: email, password: password}
+                    select: { uuid: true }, where: { email: email, password: password }
                 })
             });
 
-            if(user){
+            if (user) {
                 const token = this.security.createToken(user.uuid)
                 response.data.token = token
                 response.data.uuid = user.uuid
-            }else{
+            } else {
                 response.status = "fail"
                 response.message = textResponses.incorrectCredentials
             }
-            
+
             res.status(200).json(response);
 
-        }catch(error){
+        } catch (error) {
             console.log("error Authmanager.login =", error);
             next(error instanceof AppError ? error : new AppError((error as Error).message, 500, enumUtil.functionalError));
         }
     }
 
     public async me(req: Request, res: Response, next: NextFunction): Promise<void> {
-        const {email} = req.params;
-        const {uuid} = req.body;
-        try{
-            const response:ResponseDTO = { status:"ok", message:textResponses.success, data: {} }
+        const { email } = req.params;
+        const { uuid } = req.body;
+        try {
+            const response: ResponseDTO = { status: "ok", message: textResponses.success, data: {} }
 
             const user = await prismaHandler.executeQuery(async () => {
                 return await this.prisma.user.findUnique({
                     // select: {email: true, firstName: true, lastName: true},
-                    where: {email: email, uuid: uuid}
+                    where: { email: email, uuid: uuid }
                 })
             });
 
-            if(user){
+            if (user) {
                 response.data.user = user
                 const token = this.security.createToken(user.uuid)
                 response.data.token = token
-            }else{
+            } else {
                 response.status = "fail"
                 response.message = textResponses.incorrectCredentials
             }
             res.status(200).send(response);
-        }catch(error){
+        } catch (error) {
             console.log("error Authmanager.getProfile =", error);
             next(error instanceof AppError ? error : new AppError((error as Error).message, 500, enumUtil.functionalError));
         }
     }
 
     public async refresh(req: Request, res: Response, next: NextFunction): Promise<void> {
-        const {email} = req.params;
-        const {uuid} = req.body;
-        try{
-            const response:ResponseDTO = { status:"ok", message:textResponses.success, data: {} }
+        const { email } = req.params;
+        const { uuid } = req.body;
+        try {
+            const response: ResponseDTO = { status: "ok", message: textResponses.success, data: {} }
 
             const user = await prismaHandler.executeQuery(async () => {
                 return await this.prisma.user.findUnique({
                     // select: {email: true, firstName: true, lastName: true},
-                    where: {email: email, uuid: uuid}
+                    where: { email: email, uuid: uuid }
                 })
             });
 
-            if(user){
+            if (user) {
                 response.data.user = user
                 const token = this.security.createToken(user.uuid)
                 response.data.token = token
-            }else{
+            } else {
                 response.status = "fail"
                 response.message = textResponses.incorrectCredentials
             }
             res.status(200).send(response);
-        }catch(error){
+        } catch (error) {
             console.log("error Authmanager.getProfile =", error);
             next(error instanceof AppError ? error : new AppError((error as Error).message, 500, enumUtil.functionalError));
         }
@@ -112,34 +112,34 @@ class AuthManager {
     public async createUser(req: Request, res: Response, next: NextFunction): Promise<void> {
         const { email, userName, password } = req.body;
         try {
-            const response: ResponseDTO = { status: "ok", message: textResponses.createdResponse, data: {} }
-    
-            if ( email && password && userName && typeof(email) === 'string') {
+            const response: ResponseDTO = { status: "ok", message: textResponses.createdResponse, data: {} };
+
+            if (email && password && userName && typeof email === 'string') {
                 const userData: UserDataDTO = {
                     email,
                     userName,
                     uuid: uuidv4(),
                     password: password
-                }
+                };
 
                 const [userExists, userNameExists] = await Promise.all([
                     this.checkIfExists('email', email),
                     this.checkIfExists('userName', userName)
                 ]);
-        
+
                 if (userExists) {
                     throw new AppError("El email ya existe", 400, enumUtil.badParametersInput);
                 }
-        
+
                 if (userNameExists) {
                     throw new AppError("El nombre de usuario ya existe", 400, enumUtil.badParametersInput);
                 }
-    
-                const user = await prismaHandler.executeQuery(async () => {
-                    return await this.prisma.user.create({ data: userData })
-                });
 
-                if (user) {
+                const result = await this.prisma.$transaction(async (prisma) => {
+                    // Crear el usuario
+                    const user = await prisma.user.create({ data: userData });
+
+                    // Crear el perfil asociado al usuario
                     const profileData = {
                         firstName: "",
                         lastName: "",
@@ -148,29 +148,33 @@ class AuthManager {
                         bio: "",
                         location: "",
                         photoUrl: "",
-                        userId: user.id
+                        userId: user.id,
                     };
-                    await prismaHandler.executeQuery(async () => {
-                        return this.prisma.profile.create({ data: profileData });
-                    });
-                    delete userData.password
-                    response.data.user = userData
+                    await prisma.profile.create({ data: profileData });
+
+                    return user;
+                });
+
+                if (result) {
+                    const token = this.security.createToken(result.uuid)
+                    const { password, ...userWithoutPassword } = result;
+                    response.data.user = userWithoutPassword;
+                    response.data.token = token;
                 } else {
-                    response.status = "fail"
-                    response.message = textResponses.incorrectCredentials
+                    response.status = "fail";
+                    response.message = textResponses.incorrectCredentials;
                 }
                 res.status(200).send(response);
             } else {
                 throw new AppError(textResponses.badParameters, 400, enumUtil.badParametersInput);
             }
-    
         } catch (error) {
-            console.log("error Authmanager.createUser =", error);
+            console.log("error AuthManager.createUser =", error);
             next(error instanceof AppError ? error : new AppError((error as Error).message, 500, enumUtil.functionalError));
         }
     }
 
-    private async checkIfExists(field: string, value: string)  {
+    private async checkIfExists(field: string, value: string) {
         return await prismaHandler.executeQuery(async () => {
             return await this.prisma.user.findFirst({
                 where: { [field]: value }
